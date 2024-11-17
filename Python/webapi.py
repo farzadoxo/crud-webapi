@@ -8,43 +8,35 @@ class CreateRequestBody(BaseModel):
     nationalcode : str
     firstname : str
     lastname : str
-    age : str 
+    age : int
     country : str
     gender : bool
 
 
 
 class UpdateRequestBody(BaseModel):
-    firstname : Optional[str]
-    lastname : Optional[str]
-    age : Optional[str] 
-    country : Optional[str]
-    gender : Optional[bool]
+    firstname : Optional[str] = None
+    lastname : Optional[str] = None
+    age : Optional[int] = None
+    country : Optional[str] = None 
+    gender : Optional[bool] = None
 
 
-
-class ResponseModel:
-    nationalcode : str
-    firstname : str
-    lastname : str
-    age : str 
-    country : str
-    gender : bool
 
 
 app = FastAPI()
 
 
-@app.post('/api/create' ,status_code=status.HTTP_201_CREATED , response_model=ResponseModel)
+@app.post('/api/create' ,status_code=status.HTTP_201_CREATED)
 def create(rb : CreateRequestBody):
     try:
-        Database.cur.execute("INSERT INTO info VALUES (?,?,?,?,?)",
-                            rb.nationalcode ,
+        Database.cur.execute("INSERT INTO info VALUES (?,?,?,?,?,?)",
+                            (rb.nationalcode ,
                             rb.firstname,
                             rb.lastname,
                             rb.age,
                             rb.country,
-                            rb.gender)
+                            rb.gender))
         Database.conn.commit()
     except Exception or HTTPException as error :
         return error
@@ -86,20 +78,20 @@ def update(national_code : str , rb : UpdateRequestBody):
     try:
         if item != None :
             # Check
-            if rb.firstname != item[1]:
-                Database.cur.execute(f"UPDATE info SET FirstName = {rb.firstname} WHERE FirstName = {item[1]}")
+            if rb.firstname != None and rb.firstname != item[1]:
+                Database.cur.execute(f"UPDATE info SET FirstName = '{rb.firstname}' WHERE NationalCode = {national_code}")
                 Database.conn.commit()
-            elif rb.lastname != item[2]:
-                Database.cur.execute(f"UPDATE info SET LastName = {rb.lastname} WHERE LastName = {item[2]}")
+            elif rb.lastname != None and rb.lastname != item[2]:
+                Database.cur.execute(f"UPDATE info SET LastName = '{rb.lastname}' WHERE NationalCode = {national_code}")
                 Database.conn.commit()
-            elif rb.age != item[3]:
-                Database.cur.execute(f"UPDATE info SET Age = {rb.age} WHERE Age = {item[3]}")
+            elif rb.age != None and rb.age != item[3]:
+                Database.cur.execute(f"UPDATE info SET Age = {rb.age} WHERE NationalCode = {national_code}")
                 Database.conn.commit()
-            elif rb.country != item[4]:
-                Database.cur.execute(f"UPDATE info SET Country = {rb.country} WHERE Country = {item[4]}")
+            elif rb.country != None and rb.country != item[4]:
+                Database.cur.execute(f"UPDATE info SET Country = '{rb.country}' WHERE NationalCode = {national_code}")
                 Database.conn.commit()
-            elif rb.gender != item[5]:
-                Database.cur.execute(f"UPDATE info SET Gender = {rb.gender} WHERE Gender = {item[5]}")
+            elif rb.gender != None and rb.gender != item[5]:
+                Database.cur.execute(f"UPDATE info SET Gender = {rb.gender} WHERE NationalCode = {national_code}")
                 Database.conn.commit()
 
             return rb
