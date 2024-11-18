@@ -1,4 +1,4 @@
-from fastapi import FastAPI , status , HTTPException
+from fastapi import FastAPI , status , HTTPException , Response
 from pydantic import BaseModel
 from typing import Optional
 from database import Database
@@ -28,7 +28,7 @@ app = FastAPI()
 
 
 @app.post('/api/create' ,status_code=status.HTTP_201_CREATED)
-def create(rb : CreateRequestBody):
+def create(rb : CreateRequestBody , response:Response):
     try:
         Database.cur.execute("INSERT INTO info VALUES (?,?,?,?,?,?)",
                             (rb.nationalcode ,
@@ -38,14 +38,18 @@ def create(rb : CreateRequestBody):
                             rb.country,
                             rb.gender))
         Database.conn.commit()
+
+        return rb
+
     except Exception or HTTPException as error :
+        response.status_code = status.WS_1011_INTERNAL_ERROR
         return error
     
-    return rb
+    
 
 
 @app.get('/api/read',status_code=status.HTTP_200_OK)
-def read(national_code : str):
+def read(national_code : str , response:Response):
     Database.cur.execute(f"SELECT * FROM info WHERE NationalCode = '{national_code}'")
     item = Database.cur.fetchone()
 
@@ -63,15 +67,17 @@ def read(national_code : str):
             return response
         
         else:
+            response.status_code = status.HTTP_404_NOT_FOUND
             return "User not found :("
         
     except Exception or HTTPException as error :
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return error
     
 
 
 @app.patch('/api/update',status_code=status.HTTP_200_OK)
-def update(national_code : str , rb : UpdateRequestBody):
+def update(national_code : str , rb : UpdateRequestBody , response:Response):
     Database.cur.execute(f"SELECT * FROM info WHERE NationalCode = '{national_code}'")
     item = Database.cur.fetchone()
 
@@ -96,21 +102,33 @@ def update(national_code : str , rb : UpdateRequestBody):
 
             return rb
         else :
+            response.status_code = status.HTTP_404_NOT_FOUND
             "User not found :("
     
     except Exception or HTTPException as error :
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return error
     
 
 
 
 @app.delete('/api/delete',status_code=status.HTTP_204_NO_CONTENT)
-def delete(national_code : str):
+def delete(national_code : str , response:Response):
+
+    Database.cur.execute(f"SELECT * FROM info WHERE NationalCode = {national_code}")
+    user = Database.cur.fetchone()
+
     try:
-        Database.cur.execute(f"DELETE FROM info WHERE NationalCode = '{national_code}'")
-        Database.conn.commit()
-        
-        return "User successfully deleted ! :)"
+        if user != None:
+            Database.cur.execute(f"DELETE FROM info WHERE NationalCode = '{national_code}'")
+            Database.conn.commit()
+            
+            return "User successfully deleted ! :)"
+
+        else:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return "User not found"
     
     except Exception or HTTPException as error :
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return error
